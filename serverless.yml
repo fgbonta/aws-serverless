@@ -1,0 +1,46 @@
+service: pizzeria
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  lambdaHashingVersion: 20201221
+  region: us-east-1
+  environment:
+    REGION: ${self:provider.region}
+    PENDING_ORDERS_QUEUE:
+      Ref: PendingOrdersQueue
+    PENDING_ORDERS_QUEUE_NAME: PendingOrdersQueue
+  iam:
+    role:
+      statements:
+        - Effect: 'Allow'
+          Action:
+            - 'sqs:SendMessage'
+          Resource: 
+            - 'arn:aws:sqs:${self:provider.region}:*:${self:provider.environment.PENDING_ORDERS_QUEUE_NAME}'
+
+functions:
+  hacerPedido:
+    handler: handler.hacerPedido
+    events:
+      - http:
+          path: hacerPedido
+          method: post
+  prepararPedido:
+    handler: handler.prepararPedido
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - PendingOrdersQueue
+              - Arn
+          batchSize: 1
+
+resources:
+  Resources:
+    PendingOrdersQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:provider.environment.PENDING_ORDERS_QUEUE_NAME}
+      
