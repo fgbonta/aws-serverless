@@ -1,12 +1,15 @@
 'use strict';
 
 const { v4: uuidv4 } = require('uuid');
-const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
 
-const sqs = new SQSClient({ region: process.env.REGION }); // llama al modulo
-const queueUrl = process.env.PENDING_ORDERS_QUEUE; // la url de la cola
+const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
+const { saveCompletedOrder } = require('./orderManager');
+
 
 const hacerPedido = async (event) => {
+
+  const sqs = new SQSClient({ region: process.env.REGION }); // llama al modulo
+  const queueUrl = process.env.PENDING_ORDERS_QUEUE; // la url de la cola
 
   try {
 
@@ -16,13 +19,13 @@ const hacerPedido = async (event) => {
     let response;
 
     const body = JSON.parse(event.body);
-    const name = body?.name ?? null;
-    const address = body?.address ?? null;
-    const phone = body?.phone ?? null;
-    const email = body?.email ?? null;
+    const name = body?.name;
+    const address = body?.address;
+    const phone = body?.phone;
+    const email = body?.email;
     const order = body?.order ?? [];
 
-    if(!name || !address || !phone || !email || order.length === 0){
+    if (!name || !address || !phone || !email || order.length === 0) {
       return {
         statusCode: 400,
         body: JSON.stringify('Bad Request'),
@@ -32,14 +35,21 @@ const hacerPedido = async (event) => {
       };
     }
 
+    const ordersUniques = [];
+    order.forEach(element => {
+      if (!ordersUniques.includes(element)) {
+        ordersUniques.push(element);
+      }
+    });
+
     const params = {
-      MessageBody: JSON.stringify({ 
+      MessageBody: JSON.stringify({
         orderId,
-        name, 
-        address, 
-        phone, 
-        email, 
-        order,
+        name,
+        address,
+        phone,
+        email,
+        order: ordersUniques,
         timeStamp: new Date().getTime(),
       }),
       QueueUrl: queueUrl,
@@ -92,13 +102,23 @@ const hacerPedido = async (event) => {
 
 }
 
-const prepararPedido = (event, context, callback) => {
+const prepararPedido = async (event, context, callback) => {
 
-  console.log('fn prepararPedido fue llamada');  
+  console.log('fn prepararPedido fue llamada');
 
-  console.log(event);  
+  try {
 
-  callback();
+    const order = JSON.parse(event.Records[0].body);
+    const data = await saveCompletedOrder(order);
+
+    callback();
+
+  } catch (error) {
+
+    console.log(error);
+
+    callback(error);
+  }
 
 }
 

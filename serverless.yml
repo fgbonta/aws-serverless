@@ -1,3 +1,4 @@
+# NOTACION DE SERVERLESS
 service: pizzeria
 frameworkVersion: '2'
 
@@ -11,6 +12,7 @@ provider:
     PENDING_ORDERS_QUEUE:
       Ref: PendingOrdersQueue
     PENDING_ORDERS_QUEUE_NAME: PendingOrdersQueue
+    COMPLETED_ORDERS_TABLE_NAME: CompletedOrdersTable
   iam:
     role:
       statements:
@@ -19,6 +21,16 @@ provider:
             - 'sqs:SendMessage'
           Resource: 
             - 'arn:aws:sqs:${self:provider.region}:*:${self:provider.environment.PENDING_ORDERS_QUEUE_NAME}'
+        - Effect: 'Allow'
+          Action:
+            - 'dynamodb:Query'
+            - 'dynamodb:Scan'
+            - 'dynamodb:GetItem'
+            - 'dynamodb:PutItem'
+            - 'dynamodb:UpdateItem'
+            - 'dynamodb:DeleteItem'
+          Resource: 
+            - 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.COMPLETED_ORDERS_TABLE_NAME}'
 
 functions:
   hacerPedido:
@@ -36,11 +48,23 @@ functions:
               - PendingOrdersQueue
               - Arn
           batchSize: 1
-
+# NOTACION DE CLOUDFORMATION
 resources:
   Resources:
     PendingOrdersQueue:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:provider.environment.PENDING_ORDERS_QUEUE_NAME}
+    CompletedOrdersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.COMPLETED_ORDERS_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: 'orderId'
+            AttributeType: 'S'
+        KeySchema:
+          - AttributeName: 'orderId'
+            KeyType: 'HASH'
+        # Set the capacity to auto-scale
+        BillingMode: PAY_PER_REQUEST
       
