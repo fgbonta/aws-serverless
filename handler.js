@@ -102,7 +102,7 @@ const hacerPedido = async (event) => {
 
 }
 
-const prepararPedido = async (event, context, callback) => {
+const prepararPedido = async (event) => {
 
   console.log('fn prepararPedido fue llamada');
 
@@ -111,13 +111,13 @@ const prepararPedido = async (event, context, callback) => {
     const order = JSON.parse(event.Records[0].body);
     const data = await saveCompletedOrder(order);
 
-    callback();
+    return data;
 
   } catch (error) {
 
     console.log(error);
 
-    callback(error);
+    return error;
   }
 
 }

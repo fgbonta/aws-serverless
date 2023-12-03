@@ -6,7 +6,8 @@ provider:
   name: aws
   runtime: nodejs18.x
   lambdaHashingVersion: 20201221
-  region: us-east-1
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
   environment:
     REGION: ${self:provider.region}
     PENDING_ORDERS_QUEUE:
