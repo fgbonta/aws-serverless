@@ -1,4 +1,4 @@
-# NOTACION DE SERVERLESS
+## NOTACION DE SERVERLESS
 service: pizzeria
 frameworkVersion: '2'
 
@@ -49,7 +49,19 @@ functions:
               - PendingOrdersQueue
               - Arn
           batchSize: 1
-# NOTACION DE CLOUDFORMATION
+  enviarPedido:
+    handler: handler.enviarPedido
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1
+          startingPosition: LATEST
+          arn:
+            Fn::GetAtt:
+              - CompletedOrdersTable
+              - StreamArn
+
+## NOTACION DE CLOUDFORMATION
 resources:
   Resources:
     PendingOrdersQueue:
@@ -66,6 +78,12 @@ resources:
         KeySchema:
           - AttributeName: 'orderId'
             KeyType: 'HASH'
-        # Set the capacity to auto-scale
-        BillingMode: PAY_PER_REQUEST
+        ## Set the capacity to auto-scale
+        #BillingMode: PAY_PER_REQUEST
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        ## Habilitamos los streas para la tabla
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
       

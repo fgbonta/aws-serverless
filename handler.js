@@ -3,7 +3,7 @@
 const { v4: uuidv4 } = require('uuid');
 
 const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
-const { saveCompletedOrder } = require('./orderManager');
+const { saveCompletedOrder, deliverOrder } = require('./orderManager');
 
 
 const hacerPedido = async (event) => {
@@ -56,6 +56,7 @@ const hacerPedido = async (event) => {
     }
 
     const data = await sqs.send(new SendMessageCommand(params));
+    console.log(JSON.stringify(data));
 
     if (data) {
 
@@ -64,7 +65,7 @@ const hacerPedido = async (event) => {
         body: JSON.stringify(
           {
             message: `El pedido fue registrado con el número de orden: ${orderId}`,
-            messageIdQueue: data.MessageId,
+            //messageIdQueue: data.MessageId,
           }
         ),
         headers: {
@@ -110,6 +111,7 @@ const prepararPedido = async (event) => {
 
     const order = JSON.parse(event.Records[0].body);
     const data = await saveCompletedOrder(order);
+    console.log(JSON.stringify(data));
 
     return data;
 
@@ -122,4 +124,34 @@ const prepararPedido = async (event) => {
 
 }
 
-module.exports = { hacerPedido, prepararPedido };
+const enviarPedido = async (event) => {
+
+  console.log('fn enviarPedido fue llamada');
+
+  try {
+
+    const record = event.Records[0];
+
+    if (record.eventName === 'INSERT') {
+
+      const orderId = record.dynamodb.Keys.orderId.S;
+      const data = await deliverOrder(orderId);
+      console.log(JSON.stringify(data));
+
+      return true;
+
+    }
+
+    return false;
+
+  } catch (error) {
+
+    console.log(error);
+
+    return error;
+
+  }
+
+}
+
+module.exports = { hacerPedido, prepararPedido, enviarPedido };
