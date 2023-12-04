@@ -1,0 +1,32 @@
+hacerPedido:
+  handler: handler.hacerPedido
+  events:
+    - http:
+        path: hacerPedido
+        method: post
+prepararPedido:
+  handler: handler.prepararPedido
+  events:
+    - sqs:
+        arn:
+          Fn::GetAtt:
+            - PendingOrdersQueue
+            - Arn
+        batchSize: 1
+enviarPedido:
+  handler: handler.enviarPedido
+  events:
+    - stream:
+        type: dynamodb
+        batchSize: 1
+        startingPosition: LATEST
+        arn:
+          Fn::GetAtt:
+            - CompletedOrdersTable
+            - StreamArn
+estadoPedido:
+  handler: handler.estadoPedido
+  events:
+    - http:
+        path: estadoPedido/{orderId}
+        method: get

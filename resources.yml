@@ -1,0 +1,23 @@
+Resources:
+  PendingOrdersQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:provider.environment.PENDING_ORDERS_QUEUE_NAME}
+  CompletedOrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:provider.environment.COMPLETED_ORDERS_TABLE_NAME}
+      AttributeDefinitions:
+        - AttributeName: 'orderId'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'orderId'
+          KeyType: 'HASH'
+      ## Set the capacity to auto-scale
+      #BillingMode: PAY_PER_REQUEST
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      ## Habilitamos los streas para la tabla
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE

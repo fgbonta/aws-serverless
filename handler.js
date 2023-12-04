@@ -3,7 +3,7 @@
 const { v4: uuidv4 } = require('uuid');
 
 const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
-const { saveCompletedOrder, deliverOrder } = require('./orderManager');
+const { saveCompletedOrder, deliverOrder, getOrder } = require('./orderManager');
 
 
 const hacerPedido = async (event) => {
@@ -14,6 +14,7 @@ const hacerPedido = async (event) => {
   try {
 
     console.log('fn hacerPedido fue llamada');
+    //console.log(event);
 
     const orderId = uuidv4();
     let response;
@@ -106,6 +107,7 @@ const hacerPedido = async (event) => {
 const prepararPedido = async (event) => {
 
   console.log('fn prepararPedido fue llamada');
+  //console.log(event);
 
   try {
 
@@ -127,6 +129,7 @@ const prepararPedido = async (event) => {
 const enviarPedido = async (event) => {
 
   console.log('fn enviarPedido fue llamada');
+  //console.log(event);
 
   try {
 
@@ -154,4 +157,63 @@ const enviarPedido = async (event) => {
 
 }
 
-module.exports = { hacerPedido, prepararPedido, enviarPedido };
+const estadoPedido = async (event) => {
+
+  console.log('fn estadoPedido fue llamada');
+  //console.log(event);
+
+  try {
+
+    const orderId = event.pathParameters?.orderId;
+
+    if (orderId) {
+
+      const data = await getOrder(orderId);
+
+      if (data && data?.Item) {
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify(`El estado del pedido ${data.Item.orderId.S} es ${data.Item.delivery_status.S}.`),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+      } 
+
+      return {
+        statusCode: 404,
+        body: JSON.stringify('Not Found'),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+
+
+    }
+
+    return {
+      statusCode: 400,
+      body: JSON.stringify('Bad Request'),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+  } catch (error) {
+
+    console.log(error);
+
+    return {
+      statusCode: 500,
+      body: JSON.stringify('Internal Server Error'),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+  }
+}
+
+module.exports = { hacerPedido, prepararPedido, enviarPedido, estadoPedido };
